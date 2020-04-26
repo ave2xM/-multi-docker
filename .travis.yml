@@ -14,7 +14,7 @@ before_install:
 # If any of the scrips that we run inside of there exits with status code other than 0
 # Then travis ci is going to assume that the build failed
 script:
-  - docker run -e CI=true USERNAME/react-test npm test
+  - docker run -e CI=true manjiltamang/react-test npm test
 
 # After we run the script and after the test is passed successfully
 # Build images
