@@ -1,0 +1,58 @@
+version: "3"
+services:
+  postgres:
+    image: "postgres:latest"
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+  redis:
+    image: "redis:latest"
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - "3050:80" #localhost port : container port
+  api:
+    depends_on:
+      - postgres
+    build:
+      dockerfile: Dockerfile.dev
+      # look into server directory and use the file to build image, that's where Dockerfile.dev is also located
+      context: ./server
+    volumes:
+      # Don't try to override this folder
+      - /app/node_modules
+      # Anytime our application tries to access anything inside of the app directory inside the container
+      # except for the node_modules folder, it's going to get redirected back to the server directory of our local machine
+      - ./server:/app
+    environment:
+      # Anytime that we're trying to access a service that has been define inside a docker-compose file
+      # We just specify the name of the service. We don't have to specity the IP address or port or anything
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379 #Default redis exposed PORT from docker redis doc
+      # Postgres variables from docker postgres doc
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+
+  client:
+    stdin_open: true
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /app/node_modules
+      - ./client:/app
+  worker:
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker:/app
