@@ -1,0 +1,34 @@
+language: generic
+
+sudo: required
+
+services:
+  - docker
+
+# Before install we're gonna run the test version of client project and run tests inside of it
+# ./client at the very end means look into the client folder for build context
+before_install:
+  - docker build -t manjiltamang/react-test -f ./client/Dockerfile.dev ./client
+
+# Run the test
+# If any of the scrips that we run inside of there exits with status code other than 0
+# Then travis ci is going to assume that the build failed
+script:
+  - docker run -e CI=true USERNAME/react-test npm test
+
+# After we run the script and after the test is passed successfully
+# Build images
+after_success:
+  - docker build -t manjiltamang/multi-client ./client
+  - docker build -t manjiltamang/multi-nginx ./nginx
+  - docker build -t manjiltamang/multi-server ./server
+  - docker build -t manjiltamang/multi-worker ./worker
+  # Log in to the docker cli
+  # Echo $DOCKER_PASSWORD is going to retrieve docker password from env variable
+  # And emit that over standard input stream (stdin) as an input to next command on the other side of the | (pipe)
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push manjitamang/multi-client
+  - docker push manjiltamang/multi-nginx
+  - docker push manjiltamang/multi-server
+  - docker push manjiltamang/multi-worker
